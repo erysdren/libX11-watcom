@@ -56,7 +56,7 @@ list(TRANSFORM LIBX11_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/src/)
 # makekeys
 add_executable(makekeys ${CMAKE_CURRENT_SOURCE_DIR}/src/util/makekeys.c)
 
-# horrible hack
+# horrible makekeys hack
 set(KEYSYMDEFS keysymdef.h XF86keysym.h Sunkeysym.h DECkeysym.h HPkeysym.h)
 list(TRANSFORM KEYSYMDEFS PREPEND /usr/include/X11/)
 add_custom_command(
@@ -65,6 +65,9 @@ add_custom_command(
 	DEPENDS makekeys
 )
 add_custom_target(ks_tables ALL DEPENDS ${CMAKE_SOURCE_DIR}/src/ks_tables.h)
+
+# pthread
+find_package(Threads)
 
 # shared library
 add_library(X11_so SHARED ${LIBX11_SOURCES})
@@ -88,6 +91,10 @@ endif()
 if(HAVE_UNISTD_H)
 	target_compile_definitions(X11_so PRIVATE HAVE_UNISTD_H)
 endif()
+if(Threads_FOUND)
+	target_compile_definitions(X11_so PRIVATE XTHREADS=1)
+	target_link_libraries(X11_so PRIVATE Threads::Threads)
+endif()
 
 # static library
 add_library(X11_a STATIC ${LIBX11_SOURCES})
@@ -110,4 +117,8 @@ if(HAVE_SYS_SOCKET_H)
 endif()
 if(HAVE_UNISTD_H)
 	target_compile_definitions(X11_a PRIVATE HAVE_UNISTD_H)
+endif()
+if(Threads_FOUND)
+	target_compile_definitions(X11_a PRIVATE XTHREADS=1)
+	target_link_libraries(X11_a PRIVATE Threads::Threads)
 endif()
