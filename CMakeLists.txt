@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project(X11 VERSION 1.8.3 LANGUAGES C)
 
+# i hate my life
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(sys/ioctl.h HAVE_SYS_IOCTL_H)
+CHECK_INCLUDE_FILE(sys/filio.h HAVE_SYS_FILIO_H)
+CHECK_INCLUDE_FILE(sys/socket.h HAVE_SYS_SOCKET_H)
+CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
+
 set(LIBX11_SOURCES
 	AllCells.c AllowEv.c AllPlanes.c AutoRep.c Backgnd.c BdrWidth.c Bell.c
 	Border.c ChAccCon.c ChActPGb.c ChClMode.c ChCmap.c ChGC.c ChKeyCon.c
@@ -29,18 +36,19 @@ set(LIBX11_SOURCES
 	PolyReg.c PolyTxt16.c PolyTxt.c PropAlloc.c PutBEvent.c PutImage.c Quarks.c
 	QuBest.c QuColor.c QuColors.c QuCurShp.c QuExt.c QuKeybd.c QuPntr.c
 	QuStipShp.c QuTextE16.c QuTextExt.c QuTileShp.c QuTree.c RaiseWin.c
-	RdBitF.c RecolorC.c ReconfWin.c ReconfWM.c Region.c RegstFlt.c RepWindow.c
-	RestackWs.c RotProp.c ScrResStr.c SelInput.c SendEvent.c SetBack.c
-	SetClMask.c SetClOrig.c SetCRects.c SetDashes.c SetFont.c SetFore.c
-	SetFPath.c SetFunc.c SetHints.c SetIFocus.c SetLocale.c SetLStyle.c
-	SetNrmHint.c SetPMask.c SetPntMap.c SetRGBCMap.c SetSOwner.c SetSSaver.c
-	SetState.c SetStCmap.c SetStip.c SetTile.c SetTSOrig.c SetTxtProp.c
-	SetWMCMapW.c SetWMProto.c StBytes.c StColor.c StColors.c StName.c StNColor.c
-	StrKeysym.c StrToText.c Sync.c Synchro.c Text16.c Text.c TextExt16.c
-	TextExt.c TextToStr.c TrCoords.c UndefCurs.c UngrabBut.c UngrabKbd.c
-	UngrabKey.c UngrabPtr.c UngrabSvr.c UninsCmap.c UnldFont.c UnmapSubs.c
-	UnmapWin.c VisUtil.c WarpPtr.c Window.c WinEvent.c Withdraw.c WMGeom.c
-	WMProps.c WrBitF.c xcb_disp.c xcb_io.c XlibAsync.c XlibInt.c Xrm.c
+	RdBitF.c reallocarray.c RecolorC.c ReconfWin.c ReconfWM.c Region.c
+	RegstFlt.c RepWindow.c RestackWs.c RotProp.c ScrResStr.c SelInput.c
+	SendEvent.c SetBack.c SetClMask.c SetClOrig.c SetCRects.c SetDashes.c
+	SetFont.c SetFore.c SetFPath.c SetFunc.c SetHints.c SetIFocus.c
+	SetLocale.c SetLStyle.c SetNrmHint.c SetPMask.c SetPntMap.c SetRGBCMap.c
+	SetSOwner.c SetSSaver.c SetState.c SetStCmap.c SetStip.c SetTile.c
+	SetTSOrig.c SetTxtProp.c SetWMCMapW.c SetWMProto.c StBytes.c StColor.c
+	StColors.c StName.c StNColor.c StrKeysym.c StrToText.c Sync.c Synchro.c
+	Text16.c Text.c TextExt16.c TextExt.c TextToStr.c TrCoords.c UndefCurs.c
+	UngrabBut.c UngrabKbd.c UngrabKey.c UngrabPtr.c UngrabSvr.c UninsCmap.c
+	UnldFont.c UnmapSubs.c UnmapWin.c VisUtil.c WarpPtr.c Window.c WinEvent.c
+	Withdraw.c WMGeom.c WMProps.c WrBitF.c xcb_disp.c xcb_io.c XlibAsync.c
+	XlibInt.c Xrm.c
 )
 
 list(TRANSFORM LIBX11_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/src/)
@@ -54,6 +62,7 @@ list(TRANSFORM KEYSYMDEFS PREPEND /usr/include/X11/)
 add_custom_command(
 	OUTPUT ${CMAKE_SOURCE_DIR}/src/ks_tables.h
 	COMMAND ${CMAKE_BINARY_DIR}/makekeys ${KEYSYMDEFS} > ${CMAKE_SOURCE_DIR}/src/ks_tables.h
+	DEPENDS makekeys
 )
 add_custom_target(ks_tables ALL DEPENDS ${CMAKE_SOURCE_DIR}/src/ks_tables.h)
 
@@ -66,7 +75,19 @@ target_include_directories(X11_so PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/X1
 target_include_directories(X11_so PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xcms)
 target_include_directories(X11_so PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xkb)
 target_include_directories(X11_so PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xlibi18n)
-target_compile_definitions(X11_so PRIVATE _BSD_SOURCE X11_t TRANS_CLIENT)
+target_compile_definitions(X11_so PRIVATE X11_t TRANS_CLIENT)
+if(HAVE_SYS_IOCTL_H)
+	target_compile_definitions(X11_so PRIVATE HAVE_SYS_IOCTL_H)
+endif()
+if(HAVE_SYS_FILIO_H)
+	target_compile_definitions(X11_so PRIVATE HAVE_SYS_FILIO_H)
+endif()
+if(HAVE_SYS_SOCKET_H)
+	target_compile_definitions(X11_so PRIVATE HAVE_SYS_SOCKET_H)
+endif()
+if(HAVE_UNISTD_H)
+	target_compile_definitions(X11_so PRIVATE HAVE_UNISTD_H)
+endif()
 
 # static library
 add_library(X11_a STATIC ${LIBX11_SOURCES})
@@ -77,3 +98,16 @@ target_include_directories(X11_a PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/X11
 target_include_directories(X11_a PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xcms)
 target_include_directories(X11_a PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xkb)
 target_include_directories(X11_a PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/xlibi18n)
+target_compile_definitions(X11_a PRIVATE X11_t TRANS_CLIENT)
+if(HAVE_SYS_IOCTL_H)
+	target_compile_definitions(X11_a PRIVATE HAVE_SYS_IOCTL_H)
+endif()
+if(HAVE_SYS_FILIO_H)
+	target_compile_definitions(X11_a PRIVATE HAVE_SYS_FILIO_H)
+endif()
+if(HAVE_SYS_SOCKET_H)
+	target_compile_definitions(X11_a PRIVATE HAVE_SYS_SOCKET_H)
+endif()
+if(HAVE_UNISTD_H)
+	target_compile_definitions(X11_a PRIVATE HAVE_UNISTD_H)
+endif()
